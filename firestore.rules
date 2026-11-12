@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Hardened Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'madahanabrad@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Entity Validation Helpers
+    function isValidUserProfile(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.fullName is string && data.fullName.size() <= 100 &&
+             data.pantherLevel is number && data.pantherLevel >= 1 &&
+             data.xp is number && data.xp >= 0 &&
+             data.role in ['member', 'coach', 'admin'];
+    }
+
+    function isValidPost(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.authorId is string && data.authorId.size() <= 128 &&
+             data.authorName is string && data.authorName.size() <= 100 &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 2000;
+    }
+
+    function isValidWorkout(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 120 &&
+             data.durationMinutes is number && data.durationMinutes >= 1 &&
+             data.xpReward is number && data.xpReward >= 0;
+    }
+
+    function isValidActivityLog(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 120 &&
+             data.durationMinutes is number && data.durationMinutes >= 1 &&
+             data.caloriesBurned is number && data.caloriesBurned >= 0 &&
+             data.xpEarned is number && data.xpEarned >= 0;
+    }
+
+    // Connection check endpoint
+    match /test/{docId} {
+      allow get: if true;
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin() || resource.data.privacy.isProfilePublic == true);
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming());
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUserProfile(incoming()) && incoming().id == existing().id;
+      allow delete: if isAdmin();
+
+      // User Activity Logs Subcollection
+      match /activities/{activityId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(activityId) && isValidActivityLog(incoming());
+        allow update: if isOwner(userId) && isValidId(activityId) && isValidActivityLog(incoming());
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // Community Posts Feed
+    match /posts/{postId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(postId) && isValidPost(incoming()) && incoming().authorId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(postId) && (
+        isAdmin() ||
+        (existing().authorId == request.auth.uid && incoming().authorId == existing().authorId) ||
+        // Allow members to react or comment
+        incoming().diff(existing()).affectedKeys().hasAny(['reactions', 'userReactions', 'comments'])
+      );
+      allow delete: if isSignedIn() && (isAdmin() || existing().authorId == request.auth.uid);
+    }
+
+    // Official BA Events
+    match /events/{eventId} {
+      allow get, list: if isSignedIn();
+      allow create, delete: if isAdmin() && isValidId(eventId);
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        // Allow members to RSVP toggle
+        incoming().diff(existing()).affectedKeys().hasOnly(['registeredCount', 'registeredUserIds', 'isRegistered'])
+      );
+    }
+
+    // Workouts Library
+    match /workouts/{workoutId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(workoutId) && isValidWorkout(incoming()) && (isAdmin() || incoming().creatorId == request.auth.uid);
+      allow update: if isSignedIn() && isValidId(workoutId) && (isAdmin() || (existing().creatorId == request.auth.uid && isValidWorkout(incoming())));
+      allow delete: if isSignedIn() && (isAdmin() || existing().creatorId == request.auth.uid);
+    }
+
+    // Admin collection
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

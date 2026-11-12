@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile containing membership details, fitness level, statistics, and settings for The BA Challenge Panther app.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 256 },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "pantherLevel": { "type": "number" },
+        "xp": { "type": "number" },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "role": { "type": "string", "enum": ["member", "coach", "admin"] },
+        "memberNumber": { "type": "string", "maxLength": 50 },
+        "joinDate": { "type": "string", "maxLength": 50 },
+        "treesPlanted": { "type": "number" },
+        "hikesCompleted": { "type": "number" },
+        "isOnboarded": { "type": "boolean" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "fullName", "pantherLevel", "xp", "role"]
+    },
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "Brotherhood feed posts celebrating workouts, trail updates, discipline triumphs, and encouragement.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "authorAvatar": { "type": "string", "maxLength": 500 },
+        "authorLevel": { "type": "string", "maxLength": 50 },
+        "content": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "workoutHighlight": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "authorId", "authorName", "content", "createdAt"]
+    },
+    "BAEvent": {
+      "title": "BAEvent",
+      "description": "Official BA Challenge outdoor expeditions, rucks, bootcamps, and tree-planting outings.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "maxLength": 120 },
+        "date": { "type": "string", "maxLength": 60 },
+        "location": { "type": "string", "maxLength": 150 },
+        "type": { "type": "string", "enum": ["Bootcamp", "Hike", "Reforestation", "Camp", "Talk"] },
+        "distance": { "type": "string", "maxLength": 60 },
+        "elevation": { "type": "string", "maxLength": 60 },
+        "registeredCount": { "type": "number" },
+        "maxCapacity": { "type": "number" },
+        "description": { "type": "string", "maxLength": 1500 }
+      },
+      "required": ["id", "title", "date", "location", "type", "registeredCount", "maxCapacity"]
+    },
+    "Workout": {
+      "title": "Workout",
+      "description": "Functional physical training sessions created by coaches or shared across the brotherhood.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "enum": ["Bodyweight", "Strength", "Cardio", "Mobility", "Hike & Ruck"] },
+        "durationMinutes": { "type": "number" },
+        "difficulty": { "type": "string", "enum": ["Foundational", "Intermediate", "Advanced", "Elite"] },
+        "xpReward": { "type": "number" },
+        "description": { "type": "string", "maxLength": 800 },
+        "targetPantherLevel": { "type": "number" },
+        "creatorId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "title", "category", "durationMinutes", "difficulty", "xpReward"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "User logged physical activity records, runs, rucks, workouts, or custom sessions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "userId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "maxLength": 120 },
+        "category": { "type": "string", "maxLength": 50 },
+        "durationMinutes": { "type": "number" },
+        "caloriesBurned": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 500 },
+        "date": { "type": "string", "maxLength": 64 },
+        "xpEarned": { "type": "number" }
+      },
+      "required": ["id", "userId", "title", "durationMinutes", "caloriesBurned", "date", "xpEarned"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores individual member profile and progression data. Modifiable only by the authenticated owner or admin."
+    },
+    "/posts/{postId}": {
+      "schema": "CommunityPost",
+      "description": "Stores community feed posts. Authors can create and manage their own posts, members can react and comment."
+    },
+    "/events/{eventId}": {
+      "schema": "BAEvent",
+      "description": "Stores BA Challenge scheduled expeditions. Readable by all members, created/updated by coaches/admins."
+    },
+    "/workouts/{workoutId}": {
+      "schema": "Workout",
+      "description": "Stores official and custom workout plans. Modifiable by coaches or creators."
+    },
+    "/users/{userId}/activities/{activityId}": {
+      "schema": "ActivityLog",
+      "description": "Sub-collection of user logged activities. Isolated strictly to the authenticated user."
+    }
+  }
+}

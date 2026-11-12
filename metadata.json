@@ -1,0 +1,6 @@
+{
+  "name": "PANTHER | The BA Challenge",
+  "description": "Premium mobile-first fitness, discipline, wellness and brotherhood app with GPS trail tracking, 3D mountain maps, deep biomechanical workout analytics, and community legacy.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --accent-main: #c99738;
+    --accent-hover: #dfac4a;
+    --accent-bright: #e5b842;
+    --accent-grad: #dfb15b;
+  }
+  
+  :root[data-theme="amber"] {
+    --accent-main: #d95a1a;
+    --accent-hover: #f07432;
+    --accent-bright: #ff8b4d;
+    --accent-grad: #f46a24;
+  }
+}
